@@ -1,56 +1,54 @@
-#include "get_next_line.h"
+#include "libft.h"
 
-int	ft_new_line(char **s, char **line, int fd, int ret)
+char	*ft_bigger(int const fd, char *buf, int *ret)
 {
-	char	*new;
-	int	len;
+	char	temp[BUFF_SIZE + 1];
+	char	*temp2;
 
-	len = 0;
-	while (s[fd][len] != '\n' && s[fd][len] != '\0')
-		len++;//go on reading through the file 
-	if (s[fd][len] == '\n')//if you get to a new line then terminate and begin in new line
-	{
-		*line = ft_strsub(s[fd], 0, len);//allocate fresh string
-		new = ft_strdup(s[fd] + len + 1);//save the copy of the string including null terminator
-		free(s[fd]);
-		s[fd] = new;
-		if (s[fd][0] == '\0')
-			ft_strdel(&s[fd]);//free string
-	}
-	else if (s[fd][len] == '\0')
-	{
-		if (ret == BUFF_SIZE)
-			return (get_next_line(fd, line));
-		*line = ft_strdup(s[fd]);
-		ft_strdel(&s[fd]);
-	}
-	return (1);
+	*ret = read(fd, temp, BUFF_SIZE);
+	temp[*ret] = '\0';
+	temp2 = buf;
+	buf = ft_strjoin(buf, temp);
+	ft_strdel(&temp2);//free ... ft_memdel(void **ap)
+	return (buf);
 }
 
-int	get_next_line(const int fd, char **line)
+int	get_next_line(int const fd, char **line)
 {
-	static char	*s[255];
-	char		buf[BUFF_SIZE + 1];
+	static char	*buf = NULL;
+	int		retval;
 	char		*new;
-	int		ret;
+	int		len;
 
-	if (s[fd] < 0 || line == NULL)
+	if (!line || fd < 0)
 		return (-1);
-	while ((ret = read(fd, buf, BUFF_SIZE)) > 0)
+	if (buf[0] == '\0')
+		buf = ft_strnew(0);//set memory == \0 
+	retval = 1;
+	while (retval > 0)
 	{
-		buf[ret] = '\0';
-		if (s[fd] == NULL)
-			s[fd] = ft_strnew(1);
-		new = ft_Strjoin(s[fd], buf);
-		free(s[fd]);
-		s[fd] = new;
-		if (ft_strchr(buf, '\n'))
-			break;
+		if ((new = ft_strchr(buf, '\n')) != 0)//if new string is  not equal to new line then 
+		{
+			*new = '\0';
+			*line = ft_strdup(buf);
+			len = ft_strlen(new + 1) + 1;
+			ft_memmove(buf, new + 1, len);
+			return (1);
+		}
+		buf = ft_bigger(fd, buf, &retval);
 	}
-	if (ret < 0)
-		return (-1);
-	else if (ret == 0 && (s[fd] == NULL || s[fd][0] == '\0'))
-		return (0);
-	return (ft_new_line(s, line, fd, ret));
+	return (retval);
 }
 
+int main()
+{
+	int		ret = 1;
+	char	*line;
+
+	while (ret > 0)
+	{
+		ret = get_next_line(0, &line);
+		printf("line = %s\n", line);
+		free(line);
+	}
+}
