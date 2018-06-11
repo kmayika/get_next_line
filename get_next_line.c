@@ -39,16 +39,3 @@ int	get_next_line(int const fd, char **line)
 	}
 	return (retval);
 }
-
-int main()
-{
-	int		ret = 1;
-	char	*line;
-
-	while (ret > 0)
-	{
-		ret = get_next_line(0, &line);
-		printf("line = %s\n", line);
-		free(line);
-	}
-}
