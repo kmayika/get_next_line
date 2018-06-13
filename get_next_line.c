@@ -5,92 +5,62 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: kmayika <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2018/06/11 09:45:06 by kmayika           #+#    #+#             */
-/*   Updated: 2018/06/11 16:15:59 by kmayika          ###   ########.fr       */
+/*   Created: 2018/06/13 13:23:04 by kmayika           #+#    #+#             */
+/*   Updated: 2018/06/13 14:20:22 by kmayika          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-static int			gnl_verify_line(char **stack, char **line)
+int		gnl_verify(char **holder, char **line)
 {
-	char			*tmp_stack;
-	char			*strchr_stack;
-	int				x;
+	char	*tmp;
 
-	x = 0;
-	strchr_stack = *stack;
-	/*check if the stack contains a new line, return zero if not*/
-	while (strchr_stack[x] != '\n')
-		if (!strchr_stack[x++])
-			return (0);
-	/*if there is a new line, assign stack chr into temporary stack */
-	tmp_stack = &strchr_stack[x];
-	/*null terminate the temp stack eg. My name is kwezi\0*/
-	*tmp_stack = '\0';
-	/*copy stack into line*/
-	*line = ft_strdup(*stack);
-	/*copy whatever was copied in the stack before back to stack*/
-	*stack = ft_strdup(tmp_stack + 1);
-	return (1);
-}
-
-static	int			gnl_read_file(int fd, char *heap, char **stack, char **line)
-{
-	int				ret;
-	char			*tmp_stack;
-	/*while there is a file open with no errors*/
-	while ((ret = read(fd, heap, BUFF_SIZE)) > 0)
-	{/*take the read return as index and null terminate the heap*/
-		heap[ret] = '\0';
-		if (*stack)
-		{
-			tmp_stack = *stack;
-			*stack = ft_strjoin(tmp_stack, heap);
-			free(tmp_stack);
-			tmp_stack = NULL;
-		}
-		else
-			*stack = ft_strdup(heap);
-		if (gnl_verify_line(stack, line))
-			break ;
-	}
-	return (RET_VALUE(ret));
-}
-
-int			get_next_line(int const fd, char **line)
-{
-	static char	*stack[MAX_FD];
-	char		*heap;
-	int			ret;
-	int			x;
-
-	if (!line || (fd < 0 || fd > MAX_FD) || (read(fd, stack[fd], 0) < 0)\
-		|| !(heap = (char *)malloc(sizeof(char) * BUFF_SIZE + 1)))
-		return (-1);
-	/* if there is something in the stack verify that it has a newline,return 1 if it does*/
-	if (stack[fd])
-		if (gnl_verify_line(&stack[fd], line))
-			return (1);
-	x = 0;
-	/** When the reading of the file ends, we will free the heap (we're not gonna
-** use it anymore)*/
-	while (x < BUFF_SIZE)
-		heap[x++] = '\0';
-	ret = gnl_read_file(fd, heap, &stack[fd], line);
-	free(heap);
-	/*check for the value of ret (if it's 1 or -1, return
-** that, if the stack is empty, return 0)*/
-	if (ret != 0 || stack[fd] == NULL || stack[fd][0] == '\0')
+	if (*holder[0] == '\0')
+		return (0);
+	if (ft_strchr(*holder, '\n') != NULL)
 	{
-		if (!ret && *line)
-			*line = NULL;
-		return (ret);
+		*(ft_strchr(*holder, '\n')) = '\0';
+		*line = ft_strdup(*holder);
+		tmp = ft_strdup(ft_strchr(*holder, '\0') + 1);
+		free(*holder);
+		if (tmp)
+		{
+			*holder = ft_strdup(tmp);
+			free(tmp);
+		}
 	}
-	/*if the conditions above are invalid, assign line to the value of stack and free stack and return 1*/
-	*line = stack[fd];
-	stack[fd] = NULL;
+	else
+	{
+		*line = ft_strdup(*holder);
+		ft_memdel((void**)holder);
+	}
 	return (1);
 }
 
+int		get_next_line(const int fd, char **line)
+{
+	int			ret;
+	char		buffer[BUFF_SIZE + 1];
+	static char	*sentence[MAX_FD];
+	char		*tmp;
 
+	if (fd == -1 || read(fd, buffer, 0) < 0 || !line)
+		return (-1);
+	if (!(sentence[fd]))
+		sentence[fd] = ft_strnew(0);
+	while (ft_strchr(sentence[fd], '\n') == NULL)
+	{
+		ret = read(fd, buffer, BUFF_SIZE);
+		buffer[ret] = '\0';
+		if (ret == 0)
+			break ;
+		tmp = ft_strjoin(sentence[fd], buffer);
+		free(sentence[fd]);
+		sentence[fd] = ft_strdup(tmp);
+		if (!(sentence[fd]))
+			sentence[fd] = ft_strnew(0);
+		free(tmp);
+	}
+	return (gnl_verify(&sentence[fd], line));
+}
